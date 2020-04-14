@@ -122,27 +122,46 @@ def create_app(test_config=None):
         new_title = body.get('title', None)
         new_author = body.get('author', None)
         new_rating = body.get('rating', None)
+        search = body.get('search', None)
 
         try:
-            book = Book(title=new_title, author=new_author, rating=new_rating)
-            book.insert()
+            if search:
+                searched_selection = Book.query.order_by(Book.id).filter(
+                    Book.title.ilike('%{}%'.format(search)))
 
-            selection = Book.query.order_by(Book.id).all()
-            page = request.args.get('page', 1, type=int)
-            start = (page - 1) * BOOKS_PER_SHELF
-            end = start + BOOKS_PER_SHELF
-            books = Book.query.order_by(Book.id).all()
-            formated_books = [book.format() for book in books]
+                page = request.args.get('page', 1, type=int)
+                start = (page - 1) * BOOKS_PER_SHELF
+                end = start + BOOKS_PER_SHELF
+                formated_books = [book.format() for book in searched_selection]
 
-            current_books = formated_books[start:end]
+                current_books = formated_books[start:end]
 
-            return jsonify({
-                'succes': True,
-                'created': book.id,
-                'books': current_books,
-                'total_books': len(Book.query.all())
+                return jsonify({
+                    'succes': True,
+                    'books': current_books,
+                    'total_books': len(selection.all())
 
-            })
+                })
+            else:
+                book = Book(title=new_title, author=new_author,
+                            rating=new_rating)
+                book.insert()
+
+                selection = Book.query.order_by(Book.id).all()
+                page = request.args.get('page', 1, type=int)
+                start = (page - 1) * BOOKS_PER_SHELF
+                end = start + BOOKS_PER_SHELF
+                formated_books = [book.format() for book in selection]
+
+                current_books = formated_books[start:end]
+
+                return jsonify({
+                    'succes': True,
+                    'created': book.id,
+                    'books': current_books,
+                    'total_books': len(Book.query.all())
+
+                })
 
         except:
             abort(422)
